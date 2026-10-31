@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Free AI Caption Generator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex flex-col items-center justify-center p-6">
+
+  <div class="max-w-xl w-full bg-slate-800 p-8 rounded-2xl shadow-xl border border-slate-700 text-center">
+    <h1 class="text-3xl font-bold mb-2 text-indigo-400">AI Subtitle Generator</h1>
+    <p class="text-slate-400 mb-6">Upload an audio or video file to generate free SRT subtitles.</p>
+
+    <div class="border-2 border-dashed border-slate-600 rounded-xl p-8 mb-6 hover:border-indigo-500 transition">
+      <input type="file" id="audioFile" accept="audio/*,video/*" class="hidden" onchange="updateFileName()" />
+      <label for="audioFile" class="cursor-pointer flex flex-col items-center">
+        <svg class="w-12 h-12 text-slate-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+        </svg>
+        <span id="fileNameDisplay" class="text-slate-300 font-medium">Click to upload Audio or Video</span>
+      </label>
+    </div>
+
+    <button onclick="generateSubtitles()" id="submitBtn" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-xl transition disabled:opacity-50">
+      Generate Subtitles
+    </button>
+
+    <div id="status" class="mt-4 text-slate-400 hidden">Processing your file... Please wait.</div>
+
+    <div id="resultSection" class="mt-6 text-left hidden">
+      <h2 class="text-lg font-semibold mb-2 text-indigo-300">Generated SRT Subtitles:</h2>
+      <textarea id="srtOutput" rows="8" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-xs font-mono text-slate-200 focus:outline-none"></textarea>
+      <button onclick="downloadSRT()" class="mt-3 w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2 rounded-xl transition">
+        Download .SRT File
+      </button>
+    </div>
+  </div>
+
+  <script>
+    function updateFileName() {
+      const file = document.getElementById('audioFile').files[0];
+      if (file) {
+        document.getElementById('fileNameDisplay').textContent = file.name;
+      }
+    }
+
+    async function generateSubtitles() {
+      const fileInput = document.getElementById('audioFile');
+      if (!fileInput.files[0]) {
+        alert('Please select a file first.');
+        return;
+      }
+
+      const status = document.getElementById('status');
+      const btn = document.getElementById('submitBtn');
+      const resultSection = document.getElementById('resultSection');
+
+      status.classList.remove('hidden');
+      btn.disabled = true;
+      resultSection.classList.add('hidden');
+
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+
+      try {
+        const response = await fetch('/api/transcribe', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          document.getElementById('srtOutput').value = data.srt;
+          resultSection.classList.remove('hidden');
+        } else {
+          alert('Error: ' + (data.error || 'Failed to generate captions.'));
+        }
+      } catch (err) {
+        alert('An error occurred during processing.');
+      } finally {
+        status.classList.add('hidden');
+        btn.disabled = false;
+      }
+    }
+
+    function downloadSRT() {
+      const text = document.getElementById('srtOutput').value;
+      const blob = new Blob([text], { type: 'text/plain' });
+      const anchor = document.createElement('a');
+      anchor.download = 'subtitles.srt';
+      anchor.href = window.URL.createObjectURL(blob);
+      anchor.click();
+    }
+  </script>
+</body>
+</html>
